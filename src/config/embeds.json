@@ -1,0 +1,35 @@
+{
+    "error": {
+        "color": [197, 8, 5],
+        "title": "Error!",
+        "description": ""
+    },
+    "update": {
+        "color": [12,201,15],
+        "title": "Update",
+        "description": ""
+    },
+    "help": {
+        "color": "#1da6e5",
+        "title": "Help",
+        "description": "Here is a list of all the available commands to use.\n For more info about a command just type \"$help <name of the commmand>\"."
+    },
+    "helpDetails": {
+        "color":"#1da6e5",
+        "title":"Help",
+        "description": "Replace the <> with the details asked for"
+    },
+    "lyrics": {
+        "color": [29, 166, 229],
+        "title": "Search result"
+    },
+    "warning": {
+        "color": [239,127,0],
+        "title": "Warning!",
+        "description": ""
+    },
+    "musicPlayer": {
+        "color": [29, 166, 229],
+        "title": "Playing {Song name}"
+    }
+}

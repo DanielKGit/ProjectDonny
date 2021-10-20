@@ -1,0 +1,6 @@
+OldSrc
+**/node_modules
+node_modules
+out
+.env
+test.mp3

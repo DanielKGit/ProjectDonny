@@ -1,0 +1,26 @@
+{
+    "Prefix": "$",
+    "FlagPrefix": "-",
+    "Commands": ["help", "reply", "lyrics"],
+    "OwnerCommands": [],
+    "ModCommands": [],
+    "AliasMode": "full",
+    "Token" : "<Replace this>",
+    "ApiKey": "<Replace this>",
+    "MessageOptions": {
+        "tts": false,
+        "content": "Yes"
+    },
+    "DefualtMessageOptions": {
+        "tts": false,
+        "content": "Yes"
+    },
+    "VoiceOptions": {
+        "type": "opus",
+        "volume": 2
+    },
+    "DefualtVoiceOptions": {
+        "type": "opus",
+        "volume": 2
+    }
+}

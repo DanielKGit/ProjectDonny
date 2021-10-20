@@ -1,0 +1,6 @@
+{
+    "example": {
+        "commands": ["reply", "reply"],
+        "args": ["-tts:ture", "hello"]
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "error": {
+        "noCommandFound": "The command you are looking for can not be found please. Use the \"/Help\" command to see the list of available commmands",
+        "lowRank": "You do not hold a rank high enough in the server to execute this command",
+        "executionError": "There was an error while executing the command",
+        "addCommandFail": "There was an error while adding the command to the file",
+        "updateFail": "There was an error while updating the config file",
+        "responseFail": "The response you are looking for does not exist. Try to use the \"/Add\" to add the that response to the bot",
+        "songNotFound": "The song you are looking for does not exist",
+        "blankEntry": "This command can't be left blank",
+        "proccessingError": "The was an issue processing the request. Please try again in a few moments",
+        "keywordError": "The keypharse could not be extracted. Make sure the keyphrase is less than 32 characters and only contain alphanumeric characters",
+        "multipleKeypharse": "Multiple keyphrases have been detected. Only the first one will be used",
+        "emptyAdd": "The you can't add a response that is blanks"
+    },
+    "responses": {
+        "hello": "Hello friend"
+    }
+    
+}
