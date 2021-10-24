@@ -30,6 +30,14 @@
     },
     "musicPlayer": {
         "color": [29, 166, 229],
-        "title": "Playing {Song name}"
+        "title": "Playing: "
+    },
+    "queue": {
+        "color": [29, 166, 229],
+        "title": "Current queue (Showing the first ten songs): "
+    },
+    "addedQueue": {
+        "color": [29, 166, 229],
+        "title": "Added "
     }
 }

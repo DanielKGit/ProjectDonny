@@ -1,10 +1,13 @@
 import { AudioPlayer, AudioResource, createAudioPlayer, createAudioResource, joinVoiceChannel, VoiceConnection, AudioPlayerStatus, VoiceConnectionStatus } from "@discordjs/voice";
-import { CommandInteraction, GuildManager, GuildMember, Interaction } from "discord.js";
+import { CommandInteraction, GuildManager, GuildMember, Interaction, MessageEmbed } from "discord.js";
 import { EventEmitter } from "events";
 import { Timeout } from "./Utils/timeout";
 import ytsr from "ytsr";
 import { url } from "inspector";
 import ytdl from "ytdl-core";
+import embeds from "./config/embeds.json";
+import { stringify } from "querystring";
+import { title } from "process";
 
 export namespace AudioController {
     export const eventEmitter = new EventEmitter();
@@ -27,21 +30,22 @@ export namespace AudioController {
                  *If the bot is destoyed then it will be able to join the same channel as before
                  */ 
                 if (voiceConnection.state.status == "destroyed" || tempMember.voice.channel.id != currentChannel) {
-                    createPlayer(tempMember, interaction);
+                    await createPlayer(tempMember, interaction);
                     console.log("Created a new player");
                 }
+
             }
             else {
-                createPlayer(tempMember, interaction);
+                await createPlayer(tempMember, interaction);
                 console.log("Created a new player");
             }
-
-            await checkVaildURL(interaction.options.getString("song"));
-            await playSong();
+            
+            await checkVaildURL(interaction.options.getString("song"), interaction);
+            await playSong(interaction);
 
             audioPlayer.removeAllListeners(AudioPlayerStatus.Idle);
             audioPlayer.on(AudioPlayerStatus.Idle, () => {
-                playSong();
+                playSong(interaction);
             });
             
             audioPlayer.removeAllListeners('error');
@@ -53,6 +57,7 @@ export namespace AudioController {
             voiceConnection.on(VoiceConnectionStatus.Disconnected, () => {
                 audioPlayer.stop();
                 voiceConnection.destroy();
+                clearOutQueue();
             });
 
         }
@@ -69,6 +74,7 @@ export namespace AudioController {
                     console.log(audioPlayer.state, voiceConnection.state);
                     voiceConnection.destroy();
                     console.log(audioPlayer.state, voiceConnection.state);
+                    clearOutQueue();
                     timer.stop();
                     interaction.reply("The bot has left the voice channel");
                 }
@@ -86,54 +92,105 @@ export namespace AudioController {
     })
 
     //Check if the request the user placed is a url or a search title
-    async function checkVaildURL(url:string):Promise<void> {
+    async function checkVaildURL(url:string, interaction:CommandInteraction):Promise<void> {
+        if(!interaction.deferred && !interaction.replied) await interaction.deferReply();
         if (url.search(/http[s]{0,}:\/\/www.youtube.com\/watch/g) != -1) {
-            await addToQueue(url);
+            await addToQueue(url, interaction);
         }
         else {
-            await searchForVideo(url);
+            await searchForVideo(url, interaction);
         }
     }
 
-    async function searchForVideo(request:string):Promise<void> {
+    async function searchForVideo(request:string, interaction:CommandInteraction):Promise<void> {
         const searchResult:ytsr.Item = await ytsr(request).then((result) => {
             return result.items[0];  
         } );
         console.log(searchResult);
-        await addToQueue(searchResult["url"]);
+        await addToQueue(searchResult["url"], interaction);
     }
 
-    async function addToQueue(item:string):Promise<void> {
-        await queue.push(item);
+    async function addToQueue(item:string, interaction:CommandInteraction):Promise<void> {
+        const addedQueue:object = embeds.addedQueue;
+        const title = (await ytdl.getInfo(item)).videoDetails.title;
+        addedQueue["title"] = "Added " + title + " to the queue";
+    
+        queue.push(item);
+        interaction.editReply({embeds: [addedQueue]});
     }
 
-    function createPlayer(tempMember:GuildMember, interaction:CommandInteraction):void {
+    async function createPlayer(tempMember:GuildMember, interaction:CommandInteraction):Promise<void> {
         voiceConnection = joinVoiceChannel( {
             channelId: tempMember.voice.channel.id,
             guildId: tempMember.voice.channel.guild.id,
             selfDeaf: true,
             adapterCreator: tempMember.voice.channel.guild.voiceAdapterCreator
         })
-        interaction.reply("Joined the " + tempMember.voice.channel.name + " channel");
+        
+        await interaction.reply("Joined the " + tempMember.voice.channel.name + " channel");
         audioPlayer = createAudioPlayer();
         currentChannel = tempMember.voice.channel.id;
         voiceConnection.subscribe(audioPlayer);
     }
 
-    function readOutQueue(tempQueue:string, interaction:CommandInteraction):void {
-        console.log(tempQueue);
-        interaction.reply(tempQueue);
+    export async function readOutQueue(interaction:CommandInteraction):Promise<void> {
+        interaction.deferReply();
+        console.log(queue);
+        if (queue.length > 0) {
+            let queueEmbed:MessageEmbed = new MessageEmbed()
+                .setTitle(embeds.queue.title)
+                .setColor([embeds.queue.color[0],embeds.queue.color[1],embeds.queue.color[2]]);
+            //Only want the first ten item from the queue
+            const maxSize = (queue.length < 10) ? queue.length : 10;
+            let description:string = "";
+
+            for (let index = 0; index < maxSize; index++) {
+                const element:string = queue[index];
+                const info = await ytdl.getInfo(await ytdl.getURLVideoID(element));
+                const title:string = info.videoDetails.title;
+                description +=  (index+1) + ": " + title + "\n";
+            }
+            if (queue.length > 10) {
+                description += "There are currently " + (queue.length - 10) + " addtional songs in the queue\n";
+            }
+            queueEmbed.setDescription(description);
+            interaction.followUp({embeds: [queueEmbed]});
+        }
+        else {
+            interaction.followUp("There are currently no song in the queue");
+        }
     }
 
-    async function playSong():Promise<void> {
+    export function clearOutQueue():void {
+        queue = [];
+    }
+
+    async function playSong(interaction:CommandInteraction):Promise<void> {
         console.log(audioPlayer.state.status);
         if (audioPlayer.state.status == AudioPlayerStatus.Idle) {
-            const audioResource:AudioResource = (queue.length > 0) ? createAudioResource(await ytdl(queue.shift(), {filter: format => format.audioBitrate === 48 })) : null;
-            
-            console.log(audioResource);
-            if (audioResource != null) {
+            const nextSong = queue.shift()
+            if (nextSong != undefined) {
+                const audioResource:AudioResource = (nextSong != undefined) ? createAudioResource(await ytdl(nextSong, {filter: format => format.audioQuality == "AUDIO_QUALITY_MEDIUM" })) : null;
+                const nowPlayingEmbed: Object = embeds.musicPlayer;
+                const title:string = (await ytdl.getInfo(nextSong)).videoDetails.title;
+                nowPlayingEmbed["title"] = "Playing: " + title; 
+                
+                //Prints out to the user the currently playing song. The interaction can be in different state hence the if statement
+                if (interaction.replied && interaction.deferred) {
+                    interaction.editReply({embeds: [nowPlayingEmbed]});
+                }
+                else if (interaction.replied && !interaction.deferred) {
+                    interaction.followUp({embeds: [nowPlayingEmbed]});
+                }
+                else {
+                    interaction.reply({embeds: [nowPlayingEmbed]});
+                }
+
+                console.log(audioResource);
                 audioPlayer.play(audioResource);
+                //This line should stop the bot from going to idle state immediately which stops the bot from skipping the next song 
                 setTimeout(() => console.log("Finished song"), audioResource.playbackDuration);
+                
             }
             else {
                 //Removes all the listeners to prevent a memory leak

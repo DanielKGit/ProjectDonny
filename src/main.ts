@@ -37,14 +37,14 @@ namespace CommandRegistration {
         try {
             console.log('Started refreshing application (/) commands.');
             console.log(CommandSetup.commands);
-            await rest.put(
-                Routes.applicationCommands(clientID),
-                { body: CommandSetup.commands },
-            );
             // await rest.put(
-            //     Routes.applicationGuildCommands(clientID, testGuildID),
+            //     Routes.applicationCommands(clientID),
             //     { body: CommandSetup.commands },
             // );
+            await rest.put(
+                Routes.applicationGuildCommands(clientID, testGuildID),
+                { body: CommandSetup.commands },
+            );
     
             console.log('Successfully reloaded application (/) commands.');
         } catch (error) {
