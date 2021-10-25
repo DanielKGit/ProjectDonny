@@ -8,6 +8,7 @@ import ytdl from "ytdl-core";
 import embeds from "./config/embeds.json";
 import { stringify } from "querystring";
 import { title } from "process";
+import exp from "constants";
 
 export namespace AudioController {
     export const eventEmitter = new EventEmitter();
@@ -114,11 +115,11 @@ export namespace AudioController {
         const addedQueue:object = embeds.addedQueue;
         const title = (await ytdl.getInfo(item)).videoDetails.title;
         addedQueue["title"] = "Added " + title + " to the queue";
-    
+        
         queue.push(item);
         interaction.editReply({embeds: [addedQueue]});
     }
-
+    
     async function createPlayer(tempMember:GuildMember, interaction:CommandInteraction):Promise<void> {
         voiceConnection = joinVoiceChannel( {
             channelId: tempMember.voice.channel.id,
@@ -132,39 +133,7 @@ export namespace AudioController {
         currentChannel = tempMember.voice.channel.id;
         voiceConnection.subscribe(audioPlayer);
     }
-
-    export async function readOutQueue(interaction:CommandInteraction):Promise<void> {
-        interaction.deferReply();
-        console.log(queue);
-        if (queue.length > 0) {
-            let queueEmbed:MessageEmbed = new MessageEmbed()
-                .setTitle(embeds.queue.title)
-                .setColor([embeds.queue.color[0],embeds.queue.color[1],embeds.queue.color[2]]);
-            //Only want the first ten item from the queue
-            const maxSize = (queue.length < 10) ? queue.length : 10;
-            let description:string = "";
-
-            for (let index = 0; index < maxSize; index++) {
-                const element:string = queue[index];
-                const info = await ytdl.getInfo(await ytdl.getURLVideoID(element));
-                const title:string = info.videoDetails.title;
-                description +=  (index+1) + ": " + title + "\n";
-            }
-            if (queue.length > 10) {
-                description += "There are currently " + (queue.length - 10) + " addtional songs in the queue\n";
-            }
-            queueEmbed.setDescription(description);
-            interaction.followUp({embeds: [queueEmbed]});
-        }
-        else {
-            interaction.followUp("There are currently no song in the queue");
-        }
-    }
-
-    export function clearOutQueue():void {
-        queue = [];
-    }
-
+    
     async function playSong(interaction:CommandInteraction):Promise<void> {
         console.log(audioPlayer.state.status);
         if (audioPlayer.state.status == AudioPlayerStatus.Idle) {
@@ -203,6 +172,81 @@ export namespace AudioController {
             }
         }
     }
+    
+    export async function readOutQueue(interaction:CommandInteraction):Promise<void> {
+        interaction.deferReply();
+        console.log(queue);
+        if (queue.length > 0) {
+            let queueEmbed:MessageEmbed = new MessageEmbed()
+                .setTitle(embeds.queue.title)
+                .setColor([embeds.queue.color[0],embeds.queue.color[1],embeds.queue.color[2]]);
+            //Only want the first ten item from the queue
+            const maxSize = (queue.length < 10) ? queue.length : 10;
+            let description:string = "";
 
+            for (let index = 0; index < maxSize; index++) {
+                const element:string = queue[index];
+                const info = await ytdl.getInfo(await ytdl.getURLVideoID(element));
+                const title:string = info.videoDetails.title;
+                description +=  (index+1) + ": " + title + "\n";
+            }
+            if (queue.length > 10) {
+                description += "There are currently " + (queue.length - 10) + " addtional songs in the queue\n";
+            }
+            queueEmbed.setDescription(description);
+            interaction.followUp({embeds: [queueEmbed]});
+        }
+        else {
+            interaction.followUp("There are currently no song in the queue");
+        }
+    }
+
+    export function clearOutQueue():void {
+        queue = [];
+    }
+
+    export function skipSong() {
+
+    }
+
+    export function pause(interaction:CommandInteraction):void {
+        const tempMember = interaction.member as GuildMember;
+        const message:object = embeds.musicPlayer; 
+        if (voiceConnection != undefined) {
+            if (voiceConnection.state.status != "destroyed" || tempMember.voice.channel.id == currentChannel) {
+                audioPlayer.pause();
+                message["title"] = "The bot has been puased";
+            }
+            else {
+                message["color"] = embeds.error.color;
+                message["title"] = "You must be in the same voice channel to puase the bot";
+            }
+        }
+        else {
+            message["color"] = embeds.error.color;
+            message["title"] = "The must be playing something to puase the bot";
+        }
+        interaction.reply({embeds: [message]});
+    }
+
+    export function unpuase(interaction:CommandInteraction):void {
+        const tempMember = interaction.member as GuildMember;
+        const message:object = embeds.musicPlayer; 
+        if (voiceConnection != undefined) {
+            if (voiceConnection.state.status != "destroyed" || tempMember.voice.channel.id == currentChannel) {
+                audioPlayer.unpause();
+                message["title"] = "The bot has been unpuased";
+            }
+            else {
+                message["color"] = embeds.error.color;
+                message["title"] = "You must be in the same voice channel to unpuase the bot";
+            }
+        }
+        else {
+            message["color"] = embeds.error.color;
+            message["title"] = "The bot must be playing something to unpuase the bot";
+        }
+        interaction.reply({embeds: [message]});
+    }
 
 }
