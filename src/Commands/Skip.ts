@@ -1,12 +1,12 @@
 import { CommandInteraction, GuildMember } from "discord.js";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { Embed } from "../embedHandler";
+import { AudioController } from "../voiceHandler";
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("debug")
-        .setDescription("Searches for music and plays it"),
+        .setName("skip")
+        .setDescription("Skips the current song"),
     async execute(interaction:CommandInteraction):Promise<void> {
+        AudioController.skipSong(interaction);
     }
-}   
-
+}  

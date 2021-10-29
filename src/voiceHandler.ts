@@ -14,12 +14,14 @@ export namespace AudioController {
     export const eventEmitter = new EventEmitter();
     let audioPlayer:AudioPlayer;
     let voiceConnection:VoiceConnection;
+    var currentInteraction:CommandInteraction;
     const timer = new Timeout(1000, 360);
     let queue:string[] = [];
     let currentChannel:string = " ";
 
     eventEmitter.on("play", async (interaction:CommandInteraction) => {
-        const tempMember = interaction.member as GuildMember;
+        currentInteraction = interaction;
+        const tempMember = currentInteraction.member as GuildMember;
         if(tempMember.voice.channelId != null) {
             //Always stop the timer when a new command begins 
             timer.stop();
@@ -31,22 +33,23 @@ export namespace AudioController {
                  *If the bot is destoyed then it will be able to join the same channel as before
                  */ 
                 if (voiceConnection.state.status == "destroyed" || tempMember.voice.channel.id != currentChannel) {
-                    await createPlayer(tempMember, interaction);
+                    await createPlayer(tempMember, currentInteraction);
                     console.log("Created a new player");
                 }
 
             }
             else {
-                await createPlayer(tempMember, interaction);
+                await createPlayer(tempMember, currentInteraction);
                 console.log("Created a new player");
             }
             
-            await checkVaildURL(interaction.options.getString("song"), interaction);
-            await playSong(interaction);
+            await checkVaildURL(currentInteraction.options.getString("song"), currentInteraction).then( () => {
+                playSong(currentInteraction);
+            } );
 
             audioPlayer.removeAllListeners(AudioPlayerStatus.Idle);
             audioPlayer.on(AudioPlayerStatus.Idle, () => {
-                playSong(interaction);
+                playSong(currentInteraction);
             });
             
             audioPlayer.removeAllListeners('error');
@@ -63,12 +66,13 @@ export namespace AudioController {
 
         }
         else {
-            interaction.reply({content:"You must join a voice channel to summon the bot", ephemeral:true});
+            currentInteraction.reply({content:"You must join a voice channel to summon the bot", ephemeral:true});
         }
     });
 
     eventEmitter.on("stop", (interaction:CommandInteraction) => {
-        const tempMember = interaction.member as GuildMember;
+        currentInteraction = interaction;
+        const tempMember = currentInteraction.member as GuildMember;
         if(tempMember.voice.channelId != null) {
             if(voiceConnection.joinConfig.channelId == tempMember.voice.channel.id) {
                 if(timer.timerStatus || audioPlayer.state.status == "playing") {
@@ -77,18 +81,18 @@ export namespace AudioController {
                     console.log(audioPlayer.state, voiceConnection.state);
                     clearOutQueue();
                     timer.stop();
-                    interaction.reply("The bot has left the voice channel");
+                    currentInteraction.reply("The bot has left the voice channel");
                 }
                 else {
-                    interaction.reply("The bot is not in channel");
+                    currentInteraction.reply("The bot is not in channel");
                 }
             }
             else {
-                interaction.reply({content:"You must join the same voice channel to stop the bot", ephemeral:true});
+                currentInteraction.reply({content:"You must join the same voice channel to stop the bot", ephemeral:true});
             }
         }
         else {
-            interaction.reply({content:"You must join the same voice channel to stop the bot", ephemeral:true});
+            currentInteraction.reply({content:"You must join the same voice channel to stop the bot", ephemeral:true});
         }
     })
 
@@ -144,14 +148,18 @@ export namespace AudioController {
                 const title:string = (await ytdl.getInfo(nextSong)).videoDetails.title;
                 nowPlayingEmbed["title"] = "Playing: " + title; 
                 
+                console.log(interaction.replied, interaction.deferred);
                 //Prints out to the user the currently playing song. The interaction can be in different state hence the if statement
-                if (interaction.replied && interaction.deferred) {
+                if (interaction.deferred) {
+                    console.log("Edited reply");
                     interaction.editReply({embeds: [nowPlayingEmbed]});
                 }
                 else if (interaction.replied && !interaction.deferred) {
+                    console.log("Followed up to reply");
                     interaction.followUp({embeds: [nowPlayingEmbed]});
                 }
                 else {
+                    console.log("Replied");
                     interaction.reply({embeds: [nowPlayingEmbed]});
                 }
 
@@ -160,6 +168,12 @@ export namespace AudioController {
                 //This line should stop the bot from going to idle state immediately which stops the bot from skipping the next song 
                 setTimeout(() => console.log("Finished song"), audioResource.playbackDuration);
                 
+                //This might fix that bug where the audio player aborts randomly
+                audioPlayer.on('error', error => {
+                    console.log(`Error: ${error.message} with resource ${error.resource.metadata}`);
+                    audioPlayer.play(audioResource);
+                });
+
             }
             else {
                 //Removes all the listeners to prevent a memory leak
@@ -174,7 +188,8 @@ export namespace AudioController {
     }
     
     export async function readOutQueue(interaction:CommandInteraction):Promise<void> {
-        interaction.deferReply();
+        currentInteraction = interaction;
+        currentInteraction.deferReply();
         console.log(queue);
         if (queue.length > 0) {
             let queueEmbed:MessageEmbed = new MessageEmbed()
@@ -194,10 +209,10 @@ export namespace AudioController {
                 description += "There are currently " + (queue.length - 10) + " addtional songs in the queue\n";
             }
             queueEmbed.setDescription(description);
-            interaction.followUp({embeds: [queueEmbed]});
+            currentInteraction.followUp({embeds: [queueEmbed]});
         }
         else {
-            interaction.followUp("There are currently no song in the queue");
+            currentInteraction.followUp("There are currently no song in the queue");
         }
     }
 
@@ -205,12 +220,17 @@ export namespace AudioController {
         queue = [];
     }
 
-    export function skipSong() {
-
+    export function skipSong(interaction:CommandInteraction) {
+        currentInteraction = interaction;
+        if (audioPlayer.state.status != (AudioPlayerStatus.Idle || AudioPlayerStatus.Buffering)) {
+            audioPlayer.stop();
+        }
+        interaction.reply({embeds: [{title:"Skipping the current song" , "color":[29, 166, 229]}]});
     }
 
     export function pause(interaction:CommandInteraction):void {
-        const tempMember = interaction.member as GuildMember;
+        currentInteraction = interaction;
+        const tempMember = currentInteraction.member as GuildMember;
         const message:object = embeds.musicPlayer; 
         if (voiceConnection != undefined) {
             if (voiceConnection.state.status != "destroyed" || tempMember.voice.channel.id == currentChannel) {
@@ -226,11 +246,12 @@ export namespace AudioController {
             message["color"] = embeds.error.color;
             message["title"] = "The must be playing something to puase the bot";
         }
-        interaction.reply({embeds: [message]});
+        currentInteraction.reply({embeds: [message]});
     }
 
     export function unpuase(interaction:CommandInteraction):void {
-        const tempMember = interaction.member as GuildMember;
+        currentInteraction = interaction;
+        const tempMember = currentInteraction.member as GuildMember;
         const message:object = embeds.musicPlayer; 
         if (voiceConnection != undefined) {
             if (voiceConnection.state.status != "destroyed" || tempMember.voice.channel.id == currentChannel) {
@@ -246,7 +267,7 @@ export namespace AudioController {
             message["color"] = embeds.error.color;
             message["title"] = "The bot must be playing something to unpuase the bot";
         }
-        interaction.reply({embeds: [message]});
+        currentInteraction.reply({embeds: [message]});
     }
 
-}
+} 
