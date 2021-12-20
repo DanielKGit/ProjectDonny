@@ -3,12 +3,8 @@ import { CommandInteraction, GuildManager, GuildMember, Interaction, MessageEmbe
 import { EventEmitter } from "events";
 import { Timeout } from "./Utils/timeout";
 import ytsr from "ytsr";
-import { url } from "inspector";
 import ytdl from "ytdl-core";
 import embeds from "./config/embeds.json";
-import { stringify } from "querystring";
-import { title } from "process";
-import exp from "constants";
 
 export namespace AudioController {
     export const eventEmitter = new EventEmitter();
@@ -143,12 +139,19 @@ export namespace AudioController {
         if (audioPlayer.state.status == AudioPlayerStatus.Idle) {
             const nextSong = queue.shift()
             if (nextSong != undefined) {
-                const audioResource:AudioResource = (nextSong != undefined) ? createAudioResource(await ytdl(nextSong, {filter: format => format.audioQuality == "AUDIO_QUALITY_MEDIUM" })) : null;
+                //Note: A lower bitrate is required for livestreams to work
+                const audioResource:AudioResource = (nextSong != undefined) ? createAudioResource(await ytdl(nextSong, {filter: format => format.audioBitrate === 48, liveBuffer: 20000 })) : null;
                 const nowPlayingEmbed: Object = embeds.musicPlayer;
                 const title:string = (await ytdl.getInfo(nextSong)).videoDetails.title;
                 nowPlayingEmbed["title"] = "Playing: " + title; 
                 
-                console.log(interaction.replied, interaction.deferred);
+                //The timeout is created so that the video stream to buffer for a bit before the sound can begin playing
+                setTimeout(() => {
+                    audioPlayer.play(audioResource);
+                    console.log("Started playing " + title);
+                }, 5000);
+
+                // console.log(interaction.replied, interaction.deferred);
                 //Prints out to the user the currently playing song. The interaction can be in different state hence the if statement
                 if (interaction.deferred) {
                     console.log("Edited reply");
@@ -163,16 +166,13 @@ export namespace AudioController {
                     interaction.reply({embeds: [nowPlayingEmbed]});
                 }
 
-                console.log(audioResource);
-                audioPlayer.play(audioResource);
-                //This line should stop the bot from going to idle state immediately which stops the bot from skipping the next song 
-                setTimeout(() => console.log("Finished song"), audioResource.playbackDuration);
                 
-                //This might fix that bug where the audio player aborts randomly
-                audioPlayer.on('error', error => {
-                    console.log(`Error: ${error.message} with resource ${error.resource.metadata}`);
-                    audioPlayer.play(audioResource);
-                });
+
+                // //This might fix that bug where the audio player aborts randomly
+                // audioPlayer.on('error', error => {
+                //     console.log(`Error: ${error.message} with resource ${error.resource.metadata}`);
+                //     audioPlayer.play(audioResource);
+                // });
 
             }
             else {
