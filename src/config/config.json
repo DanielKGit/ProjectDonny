@@ -5,8 +5,7 @@
     "OwnerCommands": [],
     "ModCommands": [],
     "AliasMode": "full",
-    "Token" : "<Replace this>",
-    "ApiKey": "<Replace this>",
+    "SoundFolderLoc": "./",
     "MessageOptions": {
         "tts": false,
         "content": "Yes"
@@ -22,5 +21,6 @@
     "DefualtVoiceOptions": {
         "type": "opus",
         "volume": 2
-    }
+    },
+    "hardSearch": false
 }

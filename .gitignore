@@ -4,3 +4,4 @@ node_modules
 out
 .env
 test.mp3
+src/config.json

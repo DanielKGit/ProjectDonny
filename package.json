@@ -1,5 +1,5 @@
 {
-  "main": "out/main.js",
+  "main": "out/src/main.js",
   "scripts": {
     "start": "node .",
     "build": "tsc && node .",

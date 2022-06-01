@@ -1,6 +1,5 @@
 import { CommandInteraction, Interaction } from "discord.js";
 import Genius = require("genius-lyrics");
-import { ApiKey } from "./config/config.json";
 import embedHandler = require("./embedHandler")
 import { MessageOptions } from "./config/config.json";
 
