@@ -10,6 +10,7 @@ export class Hello extends Command {
     public async execute(interaction: CommandInteraction) {
         const player = donnyBot.getAudioPlayer();
         player.play(interaction);
+        await interaction.reply("Joined");
     }
 }
 

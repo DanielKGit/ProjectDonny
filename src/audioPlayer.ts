@@ -1,4 +1,4 @@
-import { AudioResource, createAudioResource, joinVoiceChannel, VoiceConnection, AudioPlayerStatus, VoiceConnectionStatus } from "@discordjs/voice";
+import { AudioResource, createAudioResource, createAudioPlayer, joinVoiceChannel, VoiceConnection, AudioPlayerStatus, VoiceConnectionStatus } from "@discordjs/voice";
 import { CommandInteraction, GuildManager, GuildMember, Interaction, MessageEmbed } from "discord.js";
 import dsVoice from "@discordjs/voice";
 import ytsr from "ytsr";
@@ -11,8 +11,8 @@ export class AudioPlayer {
     private readonly timeout: Timeout;
 
     constructor() {
+        this.audioPlayer = createAudioPlayer();
         this.timeout = new Timeout(1000, 360);
-        this.audioPlayer = dsVoice.createAudioPlayer();
         this.setupTimerEvents();
     }
 
@@ -24,7 +24,7 @@ export class AudioPlayer {
         // Have to cast member as Guildmember since it can also be APIGuildmember
         const guildMember: GuildMember = interaction.member as GuildMember;
 
-        if(!this.userIsInVoiceChannel(guildMember)) {
+        if(this.userIsInVoiceChannel(guildMember)) {
             this.voiceConnection = joinVoiceChannel( {
                 channelId: guildMember.voice.channel.id,
                 guildId: guildMember.voice.channel.guild.id,
