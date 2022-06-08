@@ -1,7 +1,7 @@
 import { Command } from "./commands/command";
 import fs from "fs";
 import path from "path";
-import { Client, Collection, CommandInteraction, Interaction } from "discord.js";
+import { Client, Collection, CommandInteraction } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from 'discord-api-types/v9'; 
 

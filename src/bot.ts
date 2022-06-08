@@ -1,6 +1,7 @@
 import { Client, Intents, Interaction } from 'discord.js';
 import { CommandBuilder, CommandRegistrationOptions } from './commandBuilder'
 import config from './config.json';
+import { AudioPlayer } from './audioPlayer';
 
 export class Bot {
     private readonly token: string;
@@ -9,6 +10,7 @@ export class Bot {
     private readonly commmandBuilder: CommandBuilder;
     private readonly clientID: string;
     private readonly guildID: string;
+    private readonly audioPlayer: AudioPlayer;
 
     constructor() {
         this.intents = [Intents.FLAGS.GUILDS, 
@@ -24,6 +26,8 @@ export class Bot {
 
         let options: CommandRegistrationOptions = {global: true, token: this.token, guildID: this.guildID, clientID: this.clientID};
         this.commmandBuilder.registerCommands(this.client, options);
+
+        this.audioPlayer = new AudioPlayer();
 
         this.discordEvents();
     }
@@ -54,5 +58,9 @@ export class Bot {
             }
 
         }
+    }
+
+    public getAudioPlayer() {
+        return this.audioPlayer;
     }
 }

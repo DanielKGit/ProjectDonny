@@ -1,3 +1,3 @@
 import { Bot } from "./bot"
 
-const donnyBot: Bot = new Bot();
+export const donnyBot: Bot = new Bot();
