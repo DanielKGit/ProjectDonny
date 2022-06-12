@@ -13,7 +13,8 @@ export class AudioPlayer {
     constructor() {
         this.audioPlayer = createAudioPlayer();
         this.timeout = new Timeout(1000, 360);
-        this.setupTimerEvents();
+        this.timerEventHandler();
+        this.audioPlayerEventHandler();
     }
 
     public async play(interaction: CommandInteraction): Promise<void> {
@@ -32,8 +33,16 @@ export class AudioPlayer {
                 adapterCreator: guildMember.voice.channel.guild.voiceAdapterCreator
             })
             this.voiceConnection.subscribe(this.audioPlayer);
+            this.playSong(interaction);
+        }
+    }
 
-            this.startTimout();
+    private async playSong(interaction: CommandInteraction) {
+        if (this.audioPlayer.state.status == AudioPlayerStatus.Idle) {
+            const nextSong = interaction.options.getString("song");
+            const audioResource:AudioResource = createAudioResource(await ytdl(nextSong, {filter: format => format.audioBitrate === 48, liveBuffer: 20000 }));
+
+            this.audioPlayer.play(audioResource);
         }
     }
 
@@ -42,10 +51,18 @@ export class AudioPlayer {
         return (user.voice.channelId != null) ? true : false;
     }
 
-    private setupTimerEvents() {
+    private timerEventHandler() {
         this.timeout.eventEmitter.on("finished", () => {
             this.endConnection();
         });
+    }
+
+    private audioPlayerEventHandler() {
+        this.audioPlayer.on("stateChange", (oldState: { status: any; resource: any; }, newState: { status: any; resource: any; }) => {
+            if(oldState.status == AudioPlayerStatus.Playing && newState.status == AudioPlayerStatus.Idle) {
+                this.startTimout();
+            }
+        })
     }
 
     private endConnection() {
