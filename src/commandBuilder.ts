@@ -27,9 +27,10 @@ export class CommandBuilder {
             let commandObject: any = require(`./commands/${file}`)
             let tempCommand: Command = commandObject.command;
             console.log(commandObject);
+            //Ignore the file that contains interface implemented by the other commands
             if (file != "command.js") {
-                this.commands.set(tempCommand.getName(), tempCommand);
-                this.slashCommands.push(tempCommand.getData().toJSON());
+                this.commands.set(tempCommand.name, tempCommand);
+                this.slashCommands.push(tempCommand.data.toJSON());
             }
         }
     }
@@ -39,7 +40,7 @@ export class CommandBuilder {
     }
 
     public registerCommands(client: Client, options: CommandRegistrationOptions): void {
-        const rest: REST = new REST({ version: '9' }).setToken(options.token);
+        const rest: REST = new REST({ version: '10' }).setToken(options.token);
 
         (async () => {
             try {

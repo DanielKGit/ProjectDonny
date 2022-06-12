@@ -1,10 +1,24 @@
+import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction } from "discord.js";
 import { Command } from "./command";
 import { donnyBot } from "./../main";
 
-export class Hello extends Command {
+export class Hello implements Command {
+    readonly name: string;
+    readonly description: string;
+    readonly data;
+
+
     constructor(name: string, description: string) {
-        super(name, description);
+        this.name = name;
+        this.description = description;
+        this.data = new SlashCommandBuilder()
+            .setName(name)
+            .setDescription(description)
+            .addStringOption(option => option
+                .setName("song")
+                .setDescription("Pass a url for the song")
+                .setRequired(true));
     }
 
     public async execute(interaction: CommandInteraction) {

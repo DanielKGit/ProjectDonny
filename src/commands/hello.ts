@@ -1,10 +1,19 @@
+import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction } from "discord.js";
 import { Command } from "./command";
 
-export class Hello extends Command {
+export class Hello implements Command {
+    readonly name: string;
+    readonly description: string;
+    readonly data;
+
     constructor(name: string, description: string) {
-        super(name, description);
-    }
+        this.name = name;
+        this.description = description;
+        this.data = new SlashCommandBuilder()
+            .setName(name)
+            .setDescription(description);
+    }   
 
     public async execute(interaction: CommandInteraction) {
         return await interaction.reply("Hello world");
