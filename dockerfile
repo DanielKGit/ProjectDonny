@@ -4,6 +4,8 @@ LABEL name="Daniel" email="<test@test.com>"
 
 COPY . /home/user/discordbot
 
-WORKDIR /home/user/
+WORKDIR /home/user/discordbot
 
-ENTRYPOINT node .
+RUN npm install
+
+ENTRYPOINT npm run build
